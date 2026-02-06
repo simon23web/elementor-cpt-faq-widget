@@ -1,0 +1,70 @@
+.ecfw-accordion .elementor-tab-title {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.ecfw-accordion .elementor-accordion-icon {
+    margin-right: 8px;
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+}
+
+.ecfw-accordion .elementor-tab-content[hidden] {
+    display: none;
+}
+
+.ecfw-accordion .elementor-accordion-icon svg {
+    width: 1em;
+    height: 1em;
+    display: block;
+    fill: currentColor;
+}
+
+.ecfw-accordion .elementor-accordion-icon i {
+    line-height: 1;
+}
+
+.ecfw-accordion.elementor-accordion-icon-right .elementor-accordion-icon {
+    order: 2;
+    margin-right: 0;
+    margin-left: 8px;
+}
+
+.ecfw-accordion.elementor-accordion-icon-right .elementor-accordion-title {
+    order: 1;
+}
+
+.ecfw-accordion .elementor-accordion-icon-opened {
+    display: none;
+}
+
+.ecfw-accordion .elementor-tab-title.elementor-active .elementor-accordion-icon-opened {
+    display: inline-flex;
+}
+
+.ecfw-accordion .elementor-tab-title.elementor-active .elementor-accordion-icon-closed {
+    display: none;
+}
+
+.ecfw-accordion.ecfw-icon-rotate .elementor-accordion-icon-opened {
+    display: none !important;
+}
+
+.ecfw-accordion.ecfw-icon-rotate .elementor-accordion-icon-closed {
+    display: inline-flex !important;
+    transition: transform var(--ecfw-icon-rotate-duration, 200ms) ease;
+    transform: rotate(0deg);
+    transform-origin: 50% 50%;
+}
+
+.ecfw-accordion.ecfw-icon-rotate .elementor-tab-title.elementor-active .elementor-accordion-icon-closed {
+    transform: rotate(var(--ecfw-icon-rotate, 180deg));
+}
+
+.ecfw-accordion.ecfw-icon-rotate .elementor-accordion-icon-closed svg,
+.ecfw-accordion.ecfw-icon-rotate .elementor-accordion-icon-closed i {
+    transform-origin: 50% 50%;
+}
