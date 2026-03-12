@@ -51,6 +51,7 @@ function ecfw_register_cpt()
         'has_archive' => 'faqs',
         'rewrite' => array('slug' => 'faqs'),
         'supports' => array('title', 'editor'),
+        'taxonomies' => array('industry', 'material'),
         'menu_icon' => 'dashicons-editor-help',
     );
 

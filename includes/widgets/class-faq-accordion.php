@@ -41,11 +41,167 @@ class FAQ_Accordion extends Widget_Base {
         return array('ecfw-accordion');
     }
 
+    private function get_faq_taxonomy_options() {
+        $options = array();
+        $taxonomies = get_object_taxonomies('ecfw_faq', 'objects');
+
+        if (!is_array($taxonomies)) {
+            return $options;
+        }
+
+        foreach ($taxonomies as $taxonomy => $taxonomy_object) {
+            if (!isset($taxonomy_object->labels->singular_name)) {
+                continue;
+            }
+            $options[$taxonomy] = $taxonomy_object->labels->singular_name;
+        }
+
+        return $options;
+    }
+
+    private function get_faq_term_options($taxonomy) {
+        $options = array();
+
+        if (!taxonomy_exists($taxonomy)) {
+            return $options;
+        }
+
+        $terms = get_terms(array(
+            'taxonomy' => $taxonomy,
+            'hide_empty' => false,
+        ));
+
+        if (is_wp_error($terms) || empty($terms)) {
+            return $options;
+        }
+
+        foreach ($terms as $term) {
+            $options[(string) $term->term_id] = $term->name;
+        }
+
+        return $options;
+    }
+
+    private function get_faq_post_options() {
+        $options = array();
+        $faq_ids = get_posts(array(
+            'post_type' => 'ecfw_faq',
+            'post_status' => 'publish',
+            'numberposts' => -1,
+            'orderby' => 'title',
+            'order' => 'ASC',
+            'fields' => 'ids',
+            'no_found_rows' => true,
+            'suppress_filters' => true,
+        ));
+
+        if (empty($faq_ids)) {
+            return $options;
+        }
+
+        foreach ($faq_ids as $faq_id) {
+            $title = get_the_title($faq_id);
+            if ($title === '') {
+                $title = sprintf(__('FAQ #%d', 'elementor-cpt-faq-widget'), $faq_id);
+            }
+            $options[(string) $faq_id] = $title;
+        }
+
+        return $options;
+    }
+
+    private function get_taxonomy_terms_control_id($taxonomy) {
+        return 'faq_terms_' . str_replace('-', '_', sanitize_key($taxonomy));
+    }
+
     protected function register_controls() {
+        $taxonomy_options = $this->get_faq_taxonomy_options();
+        $default_taxonomy = '';
+        if (!empty($taxonomy_options)) {
+            $taxonomy_keys = array_keys($taxonomy_options);
+            $default_taxonomy = reset($taxonomy_keys);
+        }
+
         $this->start_controls_section(
             'section_query',
             array(
                 'label' => __('Query', 'elementor-cpt-faq-widget'),
+            )
+        );
+
+        $this->add_control(
+            'query_source',
+            array(
+                'label' => __('Source', 'elementor-cpt-faq-widget'),
+                'type' => Controls_Manager::SELECT,
+                'default' => 'all',
+                'options' => array(
+                    'all' => __('All FAQs', 'elementor-cpt-faq-widget'),
+                    'taxonomy' => __('Taxonomy', 'elementor-cpt-faq-widget'),
+                    'manual' => __('Manual Selection', 'elementor-cpt-faq-widget'),
+                ),
+            )
+        );
+
+        if (!empty($taxonomy_options)) {
+            $this->add_control(
+                'faq_taxonomy',
+                array(
+                    'label' => __('Taxonomy', 'elementor-cpt-faq-widget'),
+                    'type' => Controls_Manager::SELECT,
+                    'options' => $taxonomy_options,
+                    'default' => $default_taxonomy,
+                    'condition' => array(
+                        'query_source' => 'taxonomy',
+                    ),
+                )
+            );
+
+            foreach ($taxonomy_options as $taxonomy_slug => $taxonomy_label) {
+                $terms_control_id = $this->get_taxonomy_terms_control_id($taxonomy_slug);
+
+                $this->add_control(
+                    $terms_control_id,
+                    array(
+                        'label' => sprintf(__('Terms (%s)', 'elementor-cpt-faq-widget'), $taxonomy_label),
+                        'type' => Controls_Manager::SELECT2,
+                        'multiple' => true,
+                        'label_block' => true,
+                        'options' => $this->get_faq_term_options($taxonomy_slug),
+                        'condition' => array(
+                            'query_source' => 'taxonomy',
+                            'faq_taxonomy' => $taxonomy_slug,
+                        ),
+                        'description' => __('Leave empty to show all FAQs assigned to this taxonomy.', 'elementor-cpt-faq-widget'),
+                    )
+                );
+            }
+        } else {
+            $this->add_control(
+                'faq_taxonomy_notice',
+                array(
+                    'type' => Controls_Manager::RAW_HTML,
+                    'raw' => esc_html__('No taxonomies are assigned to the FAQ post type.', 'elementor-cpt-faq-widget'),
+                    'content_classes' => 'elementor-panel-alert elementor-panel-alert-info',
+                    'condition' => array(
+                        'query_source' => 'taxonomy',
+                    ),
+                )
+            );
+        }
+
+        $this->add_control(
+            'manual_faq_ids',
+            array(
+                'label' => __('Select FAQs', 'elementor-cpt-faq-widget'),
+                'type' => Controls_Manager::SELECT2,
+                'multiple' => true,
+                'label_block' => true,
+                'options' => $this->get_faq_post_options(),
+                'condition' => array(
+                    'query_source' => 'manual',
+                ),
+                'description' => __('Order of selection is preserved in the accordion output.', 'elementor-cpt-faq-widget'),
             )
         );
 
@@ -58,6 +214,9 @@ class FAQ_Accordion extends Widget_Base {
                 'max' => 100,
                 'step' => 1,
                 'default' => 10,
+                'condition' => array(
+                    'query_source!' => 'manual',
+                ),
             )
         );
 
@@ -73,6 +232,9 @@ class FAQ_Accordion extends Widget_Base {
                     'menu_order' => __('Menu Order', 'elementor-cpt-faq-widget'),
                     'rand' => __('Random', 'elementor-cpt-faq-widget'),
                 ),
+                'condition' => array(
+                    'query_source!' => 'manual',
+                ),
             )
         );
 
@@ -85,6 +247,9 @@ class FAQ_Accordion extends Widget_Base {
                 'options' => array(
                     'ASC' => __('ASC', 'elementor-cpt-faq-widget'),
                     'DESC' => __('DESC', 'elementor-cpt-faq-widget'),
+                ),
+                'condition' => array(
+                    'query_source!' => 'manual',
                 ),
             )
         );
@@ -595,14 +760,65 @@ class FAQ_Accordion extends Widget_Base {
             $icon_active_html = $icon_html;
         }
 
-        $query = new \WP_Query(array(
+        $allowed_orderby = array('date', 'title', 'menu_order', 'rand');
+        $orderby = isset($settings['orderby']) ? $settings['orderby'] : 'date';
+        if (!in_array($orderby, $allowed_orderby, true)) {
+            $orderby = 'date';
+        }
+
+        $order = (isset($settings['order']) && $settings['order'] === 'ASC') ? 'ASC' : 'DESC';
+        $query_source = isset($settings['query_source']) ? $settings['query_source'] : 'all';
+
+        $query_args = array(
             'post_type' => 'ecfw_faq',
             'post_status' => 'publish',
-            'posts_per_page' => (int) $settings['posts_per_page'],
-            'orderby' => $settings['orderby'],
-            'order' => $settings['order'],
+            'posts_per_page' => isset($settings['posts_per_page']) ? max(1, (int) $settings['posts_per_page']) : 10,
+            'orderby' => $orderby,
+            'order' => $order,
             'no_found_rows' => true,
-        ));
+        );
+
+        if ($query_source === 'manual') {
+            $manual_faq_ids = isset($settings['manual_faq_ids']) ? (array) $settings['manual_faq_ids'] : array();
+            $manual_faq_ids = array_values(array_filter(array_unique(array_map('intval', $manual_faq_ids))));
+
+            if (!empty($manual_faq_ids)) {
+                $query_args['post__in'] = $manual_faq_ids;
+                $query_args['posts_per_page'] = count($manual_faq_ids);
+                $query_args['orderby'] = 'post__in';
+                unset($query_args['order']);
+            } else {
+                $query_args['post__in'] = array(0);
+            }
+        } elseif ($query_source === 'taxonomy') {
+            $taxonomy_options = $this->get_faq_taxonomy_options();
+            $selected_taxonomy = isset($settings['faq_taxonomy']) ? sanitize_key($settings['faq_taxonomy']) : '';
+
+            if ($selected_taxonomy !== '' && isset($taxonomy_options[$selected_taxonomy])) {
+                $terms_control_id = $this->get_taxonomy_terms_control_id($selected_taxonomy);
+                $selected_terms = isset($settings[$terms_control_id]) ? (array) $settings[$terms_control_id] : array();
+                $selected_terms = array_values(array_filter(array_unique(array_map('intval', $selected_terms))));
+
+                if (!empty($selected_terms)) {
+                    $query_args['tax_query'] = array(
+                        array(
+                            'taxonomy' => $selected_taxonomy,
+                            'field' => 'term_id',
+                            'terms' => $selected_terms,
+                        ),
+                    );
+                } else {
+                    $query_args['tax_query'] = array(
+                        array(
+                            'taxonomy' => $selected_taxonomy,
+                            'operator' => 'EXISTS',
+                        ),
+                    );
+                }
+            }
+        }
+
+        $query = new \WP_Query($query_args);
 
         if (!$query->have_posts()) {
             if (class_exists('\\Elementor\\Plugin') && \Elementor\Plugin::$instance->editor->is_edit_mode()) {
