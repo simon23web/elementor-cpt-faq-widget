@@ -1,4 +1,5 @@
 <?php
+
 namespace ECFW\Widgets;
 
 use Elementor\Controls_Manager;
@@ -12,36 +13,45 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class FAQ_Accordion extends Widget_Base {
-    public function get_name() {
+class FAQ_Accordion extends Widget_Base
+{
+    public function get_name()
+    {
         return 'ecfw-faq-accordion';
     }
 
-    public function get_title() {
+    public function get_title()
+    {
         return __('FAQ Accordion (CPT)', 'elementor-cpt-faq-widget');
     }
 
-    public function get_icon() {
+    public function get_icon()
+    {
         return 'eicon-accordion';
     }
 
-    public function get_categories() {
+    public function get_categories()
+    {
         return array('general');
     }
 
-    public function get_keywords() {
+    public function get_keywords()
+    {
         return array('faq', 'accordion', 'cpt');
     }
 
-    public function get_style_depends() {
+    public function get_style_depends()
+    {
         return array('ecfw-accordion');
     }
 
-    public function get_script_depends() {
+    public function get_script_depends()
+    {
         return array('ecfw-accordion');
     }
 
-    private function get_faq_taxonomy_options() {
+    private function get_faq_taxonomy_options()
+    {
         $options = array();
         $taxonomies = get_object_taxonomies('ecfw_faq', 'objects');
 
@@ -59,7 +69,8 @@ class FAQ_Accordion extends Widget_Base {
         return $options;
     }
 
-    private function get_faq_term_options($taxonomy) {
+    private function get_faq_term_options($taxonomy)
+    {
         $options = array();
 
         if (!taxonomy_exists($taxonomy)) {
@@ -82,7 +93,8 @@ class FAQ_Accordion extends Widget_Base {
         return $options;
     }
 
-    private function get_faq_post_options() {
+    private function get_faq_post_options()
+    {
         $options = array();
         $faq_ids = get_posts(array(
             'post_type' => 'ecfw_faq',
@@ -110,13 +122,25 @@ class FAQ_Accordion extends Widget_Base {
         return $options;
     }
 
-    private function get_taxonomy_terms_control_id($taxonomy) {
+    private function get_taxonomy_terms_control_id($taxonomy)
+    {
         return 'faq_terms_' . str_replace('-', '_', sanitize_key($taxonomy));
     }
 
-    protected function register_controls() {
+    protected function register_controls()
+    {
         $taxonomy_options = $this->get_faq_taxonomy_options();
         $default_taxonomy = '';
+
+        // Preserve any saved taxonomy value so the editor doesn't lose the
+        // user's previous selection when a taxonomy was renamed or removed.
+        $current_settings = $this->get_settings_for_display();
+        $saved_taxonomy = isset($current_settings['faq_taxonomy']) ? $current_settings['faq_taxonomy'] : '';
+        if ($saved_taxonomy !== '' && !isset($taxonomy_options[$saved_taxonomy])) {
+            /* translators: %s: taxonomy slug */
+            $taxonomy_options[$saved_taxonomy] = sprintf(__('Missing taxonomy: %s (not registered)', 'elementor-cpt-faq-widget'), $saved_taxonomy);
+        }
+
         if (!empty($taxonomy_options)) {
             $taxonomy_keys = array_keys($taxonomy_options);
             $default_taxonomy = reset($taxonomy_keys);
@@ -160,6 +184,16 @@ class FAQ_Accordion extends Widget_Base {
             foreach ($taxonomy_options as $taxonomy_slug => $taxonomy_label) {
                 $terms_control_id = $this->get_taxonomy_terms_control_id($taxonomy_slug);
 
+                // Only attempt to fetch terms for taxonomies that actually exist.
+                $term_options = array();
+                $term_description = __('Leave empty to show all FAQs assigned to this taxonomy.', 'elementor-cpt-faq-widget');
+                if (taxonomy_exists($taxonomy_slug)) {
+                    $term_options = $this->get_faq_term_options($taxonomy_slug);
+                } else {
+                    /* translators: %s: taxonomy slug */
+                    $term_description = sprintf(__('Taxonomy "%s" is not registered. Terms cannot be loaded.', 'elementor-cpt-faq-widget'), $taxonomy_slug) . ' ' . $term_description;
+                }
+
                 $this->add_control(
                     $terms_control_id,
                     array(
@@ -167,12 +201,12 @@ class FAQ_Accordion extends Widget_Base {
                         'type' => Controls_Manager::SELECT2,
                         'multiple' => true,
                         'label_block' => true,
-                        'options' => $this->get_faq_term_options($taxonomy_slug),
+                        'options' => $term_options,
                         'condition' => array(
                             'query_source' => 'taxonomy',
                             'faq_taxonomy' => $taxonomy_slug,
                         ),
-                        'description' => __('Leave empty to show all FAQs assigned to this taxonomy.', 'elementor-cpt-faq-widget'),
+                        'description' => $term_description,
                     )
                 );
             }
@@ -730,7 +764,8 @@ class FAQ_Accordion extends Widget_Base {
         $this->end_controls_section();
     }
 
-    protected function render() {
+    protected function render()
+    {
         $settings = $this->get_settings_for_display();
         $accordion_id = 'ecfw-accordion-' . $this->get_id();
         $animation_duration = isset($settings['animation_duration']) ? (int) $settings['animation_duration'] : 200;
@@ -795,25 +830,34 @@ class FAQ_Accordion extends Widget_Base {
             $selected_taxonomy = isset($settings['faq_taxonomy']) ? sanitize_key($settings['faq_taxonomy']) : '';
 
             if ($selected_taxonomy !== '' && isset($taxonomy_options[$selected_taxonomy])) {
-                $terms_control_id = $this->get_taxonomy_terms_control_id($selected_taxonomy);
-                $selected_terms = isset($settings[$terms_control_id]) ? (array) $settings[$terms_control_id] : array();
-                $selected_terms = array_values(array_filter(array_unique(array_map('intval', $selected_terms))));
-
-                if (!empty($selected_terms)) {
-                    $query_args['tax_query'] = array(
-                        array(
-                            'taxonomy' => $selected_taxonomy,
-                            'field' => 'term_id',
-                            'terms' => $selected_terms,
-                        ),
-                    );
+                // If the taxonomy has been renamed/removed, avoid building a
+                // tax_query that could trigger errors — just skip filtering.
+                if (!taxonomy_exists($selected_taxonomy)) {
+                    // Log for debugging when available.
+                    if (defined('WP_DEBUG') && WP_DEBUG) {
+                        error_log(sprintf('ecfw: selected taxonomy "%s" not registered; skipping taxonomy filter.', $selected_taxonomy));
+                    }
                 } else {
-                    $query_args['tax_query'] = array(
-                        array(
-                            'taxonomy' => $selected_taxonomy,
-                            'operator' => 'EXISTS',
-                        ),
-                    );
+                    $terms_control_id = $this->get_taxonomy_terms_control_id($selected_taxonomy);
+                    $selected_terms = isset($settings[$terms_control_id]) ? (array) $settings[$terms_control_id] : array();
+                    $selected_terms = array_values(array_filter(array_unique(array_map('intval', $selected_terms))));
+
+                    if (!empty($selected_terms)) {
+                        $query_args['tax_query'] = array(
+                            array(
+                                'taxonomy' => $selected_taxonomy,
+                                'field' => 'term_id',
+                                'terms' => $selected_terms,
+                            ),
+                        );
+                    } else {
+                        $query_args['tax_query'] = array(
+                            array(
+                                'taxonomy' => $selected_taxonomy,
+                                'operator' => 'EXISTS',
+                            ),
+                        );
+                    }
                 }
             }
         }
