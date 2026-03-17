@@ -132,21 +132,6 @@ class FAQ_Accordion extends Widget_Base
         $taxonomy_options = $this->get_faq_taxonomy_options();
         $default_taxonomy = '';
 
-        // Preserve any saved taxonomy value so the editor doesn't lose the
-        // user's previous selection when a taxonomy was renamed or removed.
-        // Avoid calling get_settings_for_display() here — during control
-        // registration it may return null. Use get_settings() when available
-        // and ensure we always have an array.
-        $current_settings = array();
-        if (method_exists($this, 'get_settings')) {
-            $current_settings = (array) $this->get_settings();
-        }
-        $saved_taxonomy = isset($current_settings['faq_taxonomy']) ? $current_settings['faq_taxonomy'] : '';
-        if ($saved_taxonomy !== '' && !isset($taxonomy_options[$saved_taxonomy])) {
-            /* translators: %s: taxonomy slug */
-            $taxonomy_options[$saved_taxonomy] = sprintf(__('Missing taxonomy: %s (not registered)', 'elementor-cpt-faq-widget'), $saved_taxonomy);
-        }
-
         if (!empty($taxonomy_options)) {
             $taxonomy_keys = array_keys($taxonomy_options);
             $default_taxonomy = reset($taxonomy_keys);
