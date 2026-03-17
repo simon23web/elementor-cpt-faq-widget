@@ -134,7 +134,13 @@ class FAQ_Accordion extends Widget_Base
 
         // Preserve any saved taxonomy value so the editor doesn't lose the
         // user's previous selection when a taxonomy was renamed or removed.
-        $current_settings = $this->get_settings_for_display();
+        // Avoid calling get_settings_for_display() here — during control
+        // registration it may return null. Use get_settings() when available
+        // and ensure we always have an array.
+        $current_settings = array();
+        if (method_exists($this, 'get_settings')) {
+            $current_settings = (array) $this->get_settings();
+        }
         $saved_taxonomy = isset($current_settings['faq_taxonomy']) ? $current_settings['faq_taxonomy'] : '';
         if ($saved_taxonomy !== '' && !isset($taxonomy_options[$saved_taxonomy])) {
             /* translators: %s: taxonomy slug */
@@ -911,7 +917,7 @@ class FAQ_Accordion extends Widget_Base
 
             $tab_id = $accordion_id . '-tab-' . $index;
             $content_id = $accordion_id . '-content-' . $index;
-            $is_open = ($index === 1 && $settings['open_first'] === 'yes');
+            $is_open = ($index === 1 && isset($settings['open_first']) && $settings['open_first'] === 'yes');
 
             echo '<div class="elementor-accordion-item">';
             echo '<div class="elementor-tab-title' . ($is_open ? ' elementor-active' : '') . '" id="' . esc_attr($tab_id) . '" role="button" aria-controls="' . esc_attr($content_id) . '" aria-expanded="' . ($is_open ? 'true' : 'false') . '">';
