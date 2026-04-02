@@ -706,6 +706,26 @@ class FAQ_Accordion extends Widget_Base
             )
         );
 
+        $this->add_responsive_control(
+            'columns',
+            array(
+                'label' => __('Columns', 'elementor-cpt-faq-widget'),
+                'type' => Controls_Manager::SELECT,
+                'default' => '1',
+                'tablet_default' => '1',
+                'mobile_default' => '1',
+                'options' => array(
+                    '1' => __('1 Column', 'elementor-cpt-faq-widget'),
+                    '2' => __('2 Columns', 'elementor-cpt-faq-widget'),
+                    '3' => __('3 Columns', 'elementor-cpt-faq-widget'),
+                    '4' => __('4 Columns', 'elementor-cpt-faq-widget'),
+                ),
+                'selectors' => array(
+                    '{{WRAPPER}} .ecfw-accordion' => '--ecfw-columns: {{VALUE}};',
+                ),
+            )
+        );
+
         $this->add_group_control(
             Group_Control_Border::get_type(),
             array(
@@ -739,7 +759,7 @@ class FAQ_Accordion extends Widget_Base
         $this->add_control(
             'items_gap',
             array(
-                'label' => __('Space Between', 'elementor-cpt-faq-widget'),
+                'label' => __('Item Gap', 'elementor-cpt-faq-widget'),
                 'type' => Controls_Manager::SLIDER,
                 'size_units' => array('px', 'em'),
                 'range' => array(
@@ -747,7 +767,7 @@ class FAQ_Accordion extends Widget_Base
                     'em' => array('min' => 0, 'max' => 2),
                 ),
                 'selectors' => array(
-                    '{{WRAPPER}} .ecfw-accordion .elementor-accordion-item + .elementor-accordion-item' => 'margin-top: {{SIZE}}{{UNIT}};',
+                    '{{WRAPPER}} .ecfw-accordion' => 'gap: {{SIZE}}{{UNIT}};',
                 ),
             )
         );
