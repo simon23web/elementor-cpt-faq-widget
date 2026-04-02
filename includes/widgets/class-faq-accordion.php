@@ -127,6 +127,17 @@ class FAQ_Accordion extends Widget_Base
         return 'faq_terms_' . str_replace('-', '_', sanitize_key($taxonomy));
     }
 
+    private function get_columns_value($value)
+    {
+        $columns = (int) $value;
+
+        if ($columns < 1 || $columns > 4) {
+            return 1;
+        }
+
+        return $columns;
+    }
+
     protected function register_controls()
     {
         $taxonomy_options = $this->get_faq_taxonomy_options();
@@ -780,6 +791,9 @@ class FAQ_Accordion extends Widget_Base
         $settings = $this->get_settings_for_display();
         $accordion_id = 'ecfw-accordion-' . $this->get_id();
         $animation_duration = isset($settings['animation_duration']) ? (int) $settings['animation_duration'] : 200;
+        $columns_desktop = $this->get_columns_value(isset($settings['columns']) ? $settings['columns'] : 1);
+        $columns_tablet = $this->get_columns_value(isset($settings['columns_tablet']) ? $settings['columns_tablet'] : $columns_desktop);
+        $columns_mobile = $this->get_columns_value(isset($settings['columns_mobile']) ? $settings['columns_mobile'] : $columns_tablet);
         $icon_position = isset($settings['icon_position']) ? $settings['icon_position'] : 'left';
         $rotate_icon = isset($settings['icon_rotate']) && $settings['icon_rotate'] === 'yes';
         $rotate_angle = 180;
@@ -896,11 +910,29 @@ class FAQ_Accordion extends Widget_Base
             $accordion_classes .= ' ecfw-icon-rotate';
         }
 
-        $accordion_style = '';
+        $accordion_style_properties = array(
+            '--ecfw-columns:' . $columns_desktop,
+        );
         if ($rotate_icon) {
-            $accordion_style = ' style="--ecfw-icon-rotate:' . esc_attr($rotate_angle) . 'deg; --ecfw-icon-rotate-duration:' . esc_attr($animation_duration) . 'ms;"';
+            $accordion_style_properties[] = '--ecfw-icon-rotate:' . $rotate_angle . 'deg';
+            $accordion_style_properties[] = '--ecfw-icon-rotate-duration:' . $animation_duration . 'ms';
         }
 
+        $accordion_style = '';
+        if (!empty($accordion_style_properties)) {
+            $accordion_style = ' style="' . esc_attr(implode('; ', $accordion_style_properties)) . ';"';
+        }
+
+        $responsive_columns_css = '';
+        if ($columns_tablet !== $columns_desktop || $columns_mobile !== $columns_tablet) {
+            $accordion_selector = '.ecfw-accordion[data-accordion-id="' . esc_attr($accordion_id) . '"]';
+            $responsive_columns_css = '<style>';
+            $responsive_columns_css .= '@media (max-width: 1024px) {' . $accordion_selector . '{--ecfw-columns:' . $columns_tablet . ';}}';
+            $responsive_columns_css .= '@media (max-width: 767px) {' . $accordion_selector . '{--ecfw-columns:' . $columns_mobile . ';}}';
+            $responsive_columns_css .= '</style>';
+        }
+
+        echo $responsive_columns_css;
         echo '<div class="' . esc_attr($accordion_classes) . '" data-accordion-id="' . esc_attr($accordion_id) . '" data-animation-duration="' . esc_attr($animation_duration) . '"' . $accordion_style . '>';
 
         while ($query->have_posts()) {
