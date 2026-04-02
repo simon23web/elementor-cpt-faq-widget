@@ -138,6 +138,30 @@ class FAQ_Accordion extends Widget_Base
         return $columns;
     }
 
+    private function get_slider_css_value($value, $default = '0px')
+    {
+        if (!is_array($value) || !isset($value['size']) || $value['size'] === '') {
+            return $default;
+        }
+
+        $size = (float) $value['size'];
+        if ($size < 0) {
+            $size = 0;
+        }
+
+        $unit = isset($value['unit']) ? $value['unit'] : 'px';
+        $allowed_units = array('px', 'em', 'rem', '%');
+        if (!in_array($unit, $allowed_units, true)) {
+            $unit = 'px';
+        }
+
+        if ((float) (int) $size === $size) {
+            $size = (int) $size;
+        }
+
+        return $size . $unit;
+    }
+
     protected function register_controls()
     {
         $taxonomy_options = $this->get_faq_taxonomy_options();
@@ -794,6 +818,7 @@ class FAQ_Accordion extends Widget_Base
         $columns_desktop = $this->get_columns_value(isset($settings['columns']) ? $settings['columns'] : 1);
         $columns_tablet = $this->get_columns_value(isset($settings['columns_tablet']) ? $settings['columns_tablet'] : $columns_desktop);
         $columns_mobile = $this->get_columns_value(isset($settings['columns_mobile']) ? $settings['columns_mobile'] : $columns_tablet);
+        $items_gap = $this->get_slider_css_value(isset($settings['items_gap']) ? $settings['items_gap'] : array(), '0px');
         $icon_position = isset($settings['icon_position']) ? $settings['icon_position'] : 'left';
         $rotate_icon = isset($settings['icon_rotate']) && $settings['icon_rotate'] === 'yes';
         $rotate_angle = 180;
@@ -911,7 +936,12 @@ class FAQ_Accordion extends Widget_Base
         }
 
         $accordion_style_properties = array(
+            'display:grid',
+            'grid-template-columns:repeat(var(--ecfw-columns, 1), minmax(0, 1fr))',
+            'align-items:start',
             '--ecfw-columns:' . $columns_desktop,
+            '--ecfw-gap:' . $items_gap,
+            'gap:var(--ecfw-gap, 0px)',
         );
         if ($rotate_icon) {
             $accordion_style_properties[] = '--ecfw-icon-rotate:' . $rotate_angle . 'deg';
