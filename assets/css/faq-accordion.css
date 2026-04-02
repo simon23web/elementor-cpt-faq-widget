@@ -1,6 +1,6 @@
 .ecfw-accordion {
-    display: grid !important;
-    grid-template-columns: repeat(var(--ecfw-columns, 1), minmax(0, 1fr)) !important;
+    display: grid;
+    grid-template-columns: repeat(var(--ecfw-columns, 1), minmax(0, 1fr));
     align-items: start;
     gap: var(--ecfw-gap, 0px);
 }

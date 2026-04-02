@@ -935,14 +935,7 @@ class FAQ_Accordion extends Widget_Base
             $accordion_classes .= ' ecfw-icon-rotate';
         }
 
-        $accordion_style_properties = array(
-            'display:grid',
-            'grid-template-columns:repeat(var(--ecfw-columns, 1), minmax(0, 1fr))',
-            'align-items:start',
-            '--ecfw-columns:' . $columns_desktop,
-            '--ecfw-gap:' . $items_gap,
-            'gap:var(--ecfw-gap, 0px)',
-        );
+        $accordion_style_properties = array();
         if ($rotate_icon) {
             $accordion_style_properties[] = '--ecfw-icon-rotate:' . $rotate_angle . 'deg';
             $accordion_style_properties[] = '--ecfw-icon-rotate-duration:' . $animation_duration . 'ms';
@@ -954,12 +947,13 @@ class FAQ_Accordion extends Widget_Base
         }
 
         $accordion_selector = '.ecfw-accordion[data-accordion-id="' . esc_attr($accordion_id) . '"]';
-        $responsive_columns_css = '<style>';
-        $responsive_columns_css .= '@media (max-width: 1024px) {' . $accordion_selector . '{--ecfw-columns:' . $columns_tablet . ';}}';
-        $responsive_columns_css .= '@media (max-width: 767px) {' . $accordion_selector . '{--ecfw-columns:' . $columns_mobile . ';}}';
-        $responsive_columns_css .= '</style>';
+        $layout_css = '<style>';
+        $layout_css .= $accordion_selector . '{display:grid;grid-template-columns:repeat(' . $columns_desktop . ', minmax(0, 1fr));align-items:start;gap:' . esc_html($items_gap) . ';}';
+        $layout_css .= '@media (max-width: 1024px) {' . $accordion_selector . '{grid-template-columns:repeat(' . $columns_tablet . ', minmax(0, 1fr));}}';
+        $layout_css .= '@media (max-width: 767px) {' . $accordion_selector . '{grid-template-columns:repeat(' . $columns_mobile . ', minmax(0, 1fr));}}';
+        $layout_css .= '</style>';
 
-        echo $responsive_columns_css;
+        echo $layout_css;
         echo '<div class="' . esc_attr($accordion_classes) . '" data-accordion-id="' . esc_attr($accordion_id) . '" data-animation-duration="' . esc_attr($animation_duration) . '"' . $accordion_style . '>';
 
         while ($query->have_posts()) {
