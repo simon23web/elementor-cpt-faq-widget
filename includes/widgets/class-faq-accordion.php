@@ -816,8 +816,8 @@ class FAQ_Accordion extends Widget_Base
         $accordion_id = 'ecfw-accordion-' . $this->get_id();
         $animation_duration = isset($settings['animation_duration']) ? (int) $settings['animation_duration'] : 200;
         $columns_desktop = $this->get_columns_value(isset($settings['columns']) ? $settings['columns'] : 1);
-        $columns_tablet = $this->get_columns_value(isset($settings['columns_tablet']) ? $settings['columns_tablet'] : $columns_desktop);
-        $columns_mobile = $this->get_columns_value(isset($settings['columns_mobile']) ? $settings['columns_mobile'] : $columns_tablet);
+        $columns_tablet = $this->get_columns_value(isset($settings['columns_tablet']) ? $settings['columns_tablet'] : 1);
+        $columns_mobile = $this->get_columns_value(isset($settings['columns_mobile']) ? $settings['columns_mobile'] : 1);
         $items_gap = $this->get_slider_css_value(isset($settings['items_gap']) ? $settings['items_gap'] : array(), '0px');
         $icon_position = isset($settings['icon_position']) ? $settings['icon_position'] : 'left';
         $rotate_icon = isset($settings['icon_rotate']) && $settings['icon_rotate'] === 'yes';
@@ -953,14 +953,11 @@ class FAQ_Accordion extends Widget_Base
             $accordion_style = ' style="' . esc_attr(implode('; ', $accordion_style_properties)) . ';"';
         }
 
-        $responsive_columns_css = '';
-        if ($columns_tablet !== $columns_desktop || $columns_mobile !== $columns_tablet) {
-            $accordion_selector = '.ecfw-accordion[data-accordion-id="' . esc_attr($accordion_id) . '"]';
-            $responsive_columns_css = '<style>';
-            $responsive_columns_css .= '@media (max-width: 1024px) {' . $accordion_selector . '{--ecfw-columns:' . $columns_tablet . ';}}';
-            $responsive_columns_css .= '@media (max-width: 767px) {' . $accordion_selector . '{--ecfw-columns:' . $columns_mobile . ';}}';
-            $responsive_columns_css .= '</style>';
-        }
+        $accordion_selector = '.ecfw-accordion[data-accordion-id="' . esc_attr($accordion_id) . '"]';
+        $responsive_columns_css = '<style>';
+        $responsive_columns_css .= '@media (max-width: 1024px) {' . $accordion_selector . '{--ecfw-columns:' . $columns_tablet . ';}}';
+        $responsive_columns_css .= '@media (max-width: 767px) {' . $accordion_selector . '{--ecfw-columns:' . $columns_mobile . ';}}';
+        $responsive_columns_css .= '</style>';
 
         echo $responsive_columns_css;
         echo '<div class="' . esc_attr($accordion_classes) . '" data-accordion-id="' . esc_attr($accordion_id) . '" data-animation-duration="' . esc_attr($animation_duration) . '"' . $accordion_style . '>';
